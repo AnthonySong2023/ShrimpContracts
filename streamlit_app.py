@@ -18,7 +18,7 @@ st.write(
 @st.cache_data
 def load_data():
     file_path = 'data/shrimpcontract.csv'
-    return pd.read_excel(file_path, sheet_name='Sheet1').ffill()
+    return pd.read_csv(file_path).ffill()
 
 # Main application
 def main():
