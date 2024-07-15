@@ -14,53 +14,45 @@ st.write(
 )
 
 
-# Load the data from a CSV. We're caching this so it doesn't reload every time the app
-# reruns (e.g. if the user interacts with the widgets).
+# Load the Excel file
 @st.cache_data
 def load_data():
-    df = pd.read_csv("data/movies_genres_summary.csv")
-    return df
+    file_path = 'data/shrimpcontract.csv'
+    return pd.read_excel(file_path, sheet_name='Sheet1').ffill()
 
-
-df = load_data()
-
-# Show a multiselect widget with the genres using `st.multiselect`.
-genres = st.multiselect(
-    "Genres",
-    df.genre.unique(),
-    ["Action", "Adventure", "Biography", "Comedy", "Drama", "Horror"],
-)
-
-# Show a slider widget with the years using `st.slider`.
-years = st.slider("Years", 1986, 2006, (2000, 2016))
-
-# Filter the dataframe based on the widget input and reshape it.
-df_filtered = df[(df["genre"].isin(genres)) & (df["year"].between(years[0], years[1]))]
-df_reshaped = df_filtered.pivot_table(
-    index="year", columns="genre", values="gross", aggfunc="sum", fill_value=0
-)
-df_reshaped = df_reshaped.sort_values(by="year", ascending=False)
-
-
-# Display the data as a table using `st.dataframe`.
-st.dataframe(
-    df_reshaped,
-    use_container_width=True,
-    column_config={"year": st.column_config.TextColumn("Year")},
-)
-
-# Display the data as an Altair chart using `st.altair_chart`.
-df_chart = pd.melt(
-    df_reshaped.reset_index(), id_vars="year", var_name="genre", value_name="gross"
-)
-chart = (
-    alt.Chart(df_chart)
-    .mark_line()
-    .encode(
-        x=alt.X("year:N", title="Year"),
-        y=alt.Y("gross:Q", title="Gross earnings ($)"),
-        color="genre:N",
+# Main application
+def main():
+    st.title("Sales Data Management")
+    
+    # Load data
+    df = load_data()
+    
+    # Display the dataframe
+    st.write("### Sales Data", df)
+    
+    # Add sidebar filters
+    st.sidebar.title("Filters")
+    date_filter = st.sidebar.date_input("签约日期", [])
+    buyer_filter = st.sidebar.multiselect("买方名称", options=df["买方名称"].unique())
+    
+    # Apply filters
+    if date_filter:
+        df = df[df["签约日期"].isin(date_filter)]
+    if buyer_filter:
+        df = df[df["买方名称"].isin(buyer_filter)]
+    
+    # Display filtered dataframe
+    st.write("### Filtered Sales Data", df)
+    
+    # Option to download the filtered data
+    st.write("### Download Filtered Data")
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="Download CSV",
+        data=csv,
+        file_name='filtered_sales_data.csv',
+        mime='text/csv',
     )
-    .properties(height=320)
-)
-st.altair_chart(chart, use_container_width=True)
+
+if __name__ == "__main__":
+    main()
